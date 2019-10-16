@@ -1,4 +1,5 @@
 import argparse
+from State import State
 
 def line_to_tokens(line):
     tokens = []
@@ -54,6 +55,53 @@ def parse(f):
         raise ValueError(f"Numbers should go from 0 to {puzzle_size ** 2}")
     return puzzle_size, puzzle
 
+def generate_solution(side):
+    sol = State([[0 for _ in range(side)] for _ in range(side)])
+    step = side - 1
+    dir = 'r'
+    c = 1
+    cp = [0, 0]
+    cnt = 0
+    first_time = True
+    while step != 0:
+        print(dir, step)
+        for i in range(step):
+            print(cp)
+            sol[cp[0], cp[1]] = c
+            c += 1
+
+            if dir == 'r':
+                cp[1] += 1
+            elif dir == 'd':
+                cp[0] += 1
+            elif dir == 'l':
+                cp[1] -= 1
+            elif dir == 'u':
+                cp[0] -= 1
+
+
+        if (first_time and cnt == 3):
+            first_time = False
+            step -= 1
+            cnt = 0
+        elif cnt == 2:
+            step -= 1
+            cnt = 0
+
+        cnt += 1
+
+        if dir == 'r':
+            dir = 'd'
+        elif dir == 'd':
+            dir = 'l'
+        elif dir == 'l':
+            dir = 'u'
+        else:
+            dir = 'r'
+    print(sol)
+
+    return sol
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('puzzle', help='path to puzzle file')
@@ -73,3 +121,6 @@ if __name__ == '__main__':
     
 
     print("PUZZLE PARSED:", puzzle)
+    solution = [[r for r in range(c * puzzle_size, (c + 1) * puzzle_size)] for c in range(puzzle_size)]
+    
+    generate_solution(puzzle_size)
