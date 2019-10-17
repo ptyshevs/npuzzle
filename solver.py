@@ -64,9 +64,7 @@ def generate_solution(side):
     cnt = 0
     first_time = True
     while step != 0:
-        print(dir, step)
         for i in range(step):
-            print(cp)
             sol[cp[0], cp[1]] = c
             c += 1
 
@@ -98,9 +96,12 @@ def generate_solution(side):
             dir = 'u'
         else:
             dir = 'r'
-    print(sol)
-
+    sol._find_empty()
     return sol
+
+def djkstra_heuristic(node):
+    """ Djkstra algorithm is a special-case of A* when h(n) = 0 """
+    return 0
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -121,6 +122,19 @@ if __name__ == '__main__':
     
 
     print("PUZZLE PARSED:", puzzle)
-    solution = [[r for r in range(c * puzzle_size, (c + 1) * puzzle_size)] for c in range(puzzle_size)]
+
+    solution = generate_solution(puzzle_size)
+
+    r = solution.swap('u')
+    r = r.swap('r')
+    r = r.swap('r')
+    r = r.swap('r')
+    r = r.swap('r')
+    r = r.swap('r')
+    r = r.swap('u')
+    r = r.swap('u')
+    r = r.swap('u')
+    r = r.swap('u')
+    r = r.swap('l')
     
-    generate_solution(puzzle_size)
+    print(r)
