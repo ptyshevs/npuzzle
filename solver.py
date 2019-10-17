@@ -1,5 +1,6 @@
 import argparse
 from State import State
+from PriorityQueue import PriorityQueue
 
 def line_to_tokens(line):
     tokens = []
@@ -110,6 +111,8 @@ def h_misplaced(node, sol):
 def some_g(node):
     return 1
 
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('puzzle', help='path to puzzle file')
@@ -134,15 +137,19 @@ if __name__ == '__main__':
     print("Solution:", solution, sep='\n')
     h = h_misplaced
     g = some_g
-    opened = [puzzle]
+    opened = PriorityQueue()
+
+    puzzle.heur = h(puzzle, solution)
+    opened.add(puzzle.heur, puzzle)
+
     closed = []
     success = False
     max_iter = 10
     iter = 0
     while True:
-        if not opened or success or iter >= max_iter:
+        if len(opened) == 0 or success or iter >= max_iter:
             break
-        e = opened.pop(0)
+        e = opened.pop()
         closed.append(e)
         if e == solution:
             success = True
@@ -150,25 +157,19 @@ if __name__ == '__main__':
             for dir in ['u', 'r', 'd', 'l']:
                 try:
                     r = e.swap(dir)
-                except ValueError:
-                    continue
-                if r not in opened and r not in closed:
-                    opened.append(r)
+                    r.heur = h(r, solution)
                     r.came_from = e
                     r.dir_from = dir
                     r.g = e.g + 1 # + Cost
-                    r.heur = h(r, solution)
+                except ValueError:
+                    continue
+                if r not in opened and r not in closed:
+                    opened.add(r.heur, r)
                 else:
-                    r.heur = h(r, solution)
                     if r.g + r.heur > e.g + 1 + r.heur:
-                        r.g = e.g + 1
-                        r.came_from = e
-                        r.dir_from = dir
                         if r in closed:
                             closed.remove(r)
-                            opened.append(r)
-            opened = sorted(opened, key=lambda x: x.heur)
-        
+                            opened.add(r.heur, r)
         iter += 1
     print("Success:", success, "n_iter:", iter, 'opened size:', len(opened))
     if success:
