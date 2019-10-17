@@ -53,7 +53,7 @@ def parse(f):
     # Handle case when numbers are not from 0 to N - 1
     if sorted(list(puzzle_nmbrs)) != list(range(puzzle_size ** 2)):  
         raise ValueError(f"Numbers should go from 0 to {puzzle_size ** 2}")
-    return puzzle_size, puzzle
+    return puzzle_size, State(puzzle)
 
 def generate_solution(side):
     sol = State([[0 for _ in range(side)] for _ in range(side)])
@@ -103,6 +103,9 @@ def djkstra_heuristic(node):
     """ Djkstra algorithm is a special-case of A* when h(n) = 0 """
     return 0
 
+def some_g(node):
+    return 1
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('puzzle', help='path to puzzle file')
@@ -121,20 +124,57 @@ if __name__ == '__main__':
         exit(1)
     
 
-    print("PUZZLE PARSED:", puzzle)
+    print("PUZZLE PARSED:", puzzle, sep='\n')
 
     solution = generate_solution(puzzle_size)
-
-    r = solution.swap('u')
-    r = r.swap('r')
-    r = r.swap('r')
-    r = r.swap('r')
-    r = r.swap('r')
-    r = r.swap('r')
-    r = r.swap('u')
-    r = r.swap('u')
-    r = r.swap('u')
-    r = r.swap('u')
-    r = r.swap('l')
-    
-    print(r)
+    print("Solution:", solution, sep='\n')
+    h = djkstra_heuristic
+    g = some_g
+    opened = [puzzle]
+    closed = []
+    success = False
+    max_iter = 10
+    iter = 0
+    while True:
+        if not opened or success or iter >= max_iter:
+            break
+        e = opened.pop(0)
+        closed.append(e)
+        print(f"e=\n{e}\n e == solution: {e == solution}")
+        if e == solution:
+            success = True
+        else:
+            for dir in ['u', 'r', 'd', 'l']:
+                try:
+                    r = e.swap(dir)
+                except ValueError:
+                    continue
+                if r not in opened and r not in closed:
+                    opened.append(r)
+                    r.came_from = e
+                    r.dir_from = dir
+                    r.g = e.g + 1 # + Cost
+                else:
+                    rh = h(r)
+                    if r.g + rh > e.g + 1 + rh:
+                        r.g = e.g + 1
+                        r.came_from = e
+                        r.dir_from = dir
+                        if r in closed:
+                            closed.remove(r)
+                            opened.append(r)
+        
+        iter += 1
+    print("Success:", success)
+    if success:
+        state_path = []
+        while e.came_from is not None:
+            state_path.append(e)
+            e = e.came_from
+        state_path.append(puzzle)
+        state_path = reversed(state_path)
+        print("PATH:")
+        print("\n========\n".join(('|'.join((str(_), str(_.dir_from))) for _ in state_path)))
+    # print("Opened")
+    # print('\n-----\n'.join((str(_) for _ in opened)))
+    # print("Closed:", closed)

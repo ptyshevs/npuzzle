@@ -1,4 +1,4 @@
-class State(object):
+class State(list):
     def __init__(self, values=None, empty_loc=None):
         """
         Matrix is a rectangular table of numerical values
@@ -14,10 +14,12 @@ class State(object):
         if self.shape[0] > 10:
             self.pad = 3
         self.came_from = None
+        self.dir_from = None
         if empty_loc is None:
             self._find_empty()
         else:
             self.empty_loc = empty_loc
+        self.g = 0
     
     def _find_empty(self):
         found = False
@@ -72,23 +74,21 @@ class State(object):
 
     def swap(self, dir, inplace=False):
         y, x = self.empty_loc
-        print("START SWAP")
-        print(f'y={y}|x={x}')
+        if dir == 'u' and y == 0 or dir == 'd' and y == self.h - 1:
+            raise ValueError(f"{dir} cannot be performed")
+        elif (dir == 'l' and x == 0) or (dir == 'r' and x == self.w - 1):
+            raise ValueError(f"{dir} cannot be performed")
         if inplace:
             r = self
         else:
             r = self.copy()
         if dir == 'u':
-            assert y > 0
             r._swap((y - 1, x))
         elif dir == 'r':
-            assert x < self.w - 1
             r._swap((y, x + 1))
         elif dir == 'd':
-            assert y < self.h - 1
             r._swap((y + 1, x))
         else:
-            assert x > 0
             r._swap((y, x - 1))
         return r            
 
@@ -163,3 +163,6 @@ class State(object):
     def copy(self):
         """ Return a copy of a state """
         return State([r[:] for r in self.values], empty_loc=self.empty_loc)
+
+    def __eq__(self, o):
+        return all([all([c1 == c2 for c1, c2 in zip(r1, r2)]) for r1, r2 in zip(self.values, o.values)])
