@@ -100,13 +100,35 @@ def generate_solution(side):
     sol._find_empty()
     return sol
 
-def djkstra_heuristic(node, solution=None):
+def h_djkstra(node, solution=None):
     """ Djkstra algorithm is a special-case of A* when h(n) = 0 """
     return 0
 
 def h_misplaced(node, sol):
     res = [sum([c1 != c2 for c1, c2 in zip(r1, r2)]) for r1, r2 in zip(node.values, sol.values)]
     return sum(res)
+
+def h_euclidean(node, sol):
+    """ RMSE between numbers """
+    h, w = node.shape
+    heur = 0
+    for i in range(h):
+        for j in range(w):
+            c1 = node[i, j]
+            c2 = sol[i, j]
+            if c1 != c2:
+                found = False
+                for k in range(h):
+                    for m in range(w):
+                        c = sol[k, m]
+                        if c1 == c:
+                            heur += (k - i) ** 2 + (m - j) ** 2
+                            found = True
+                        if found:
+                            break
+                    if found:
+                        break
+    return heur
 
 def some_g(node):
     return 1
@@ -116,6 +138,8 @@ def some_g(node):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('puzzle', help='path to puzzle file')
+    parser.add_argument('--heuristic', default='misplaced', help="Heuristic to use [misplaced|euclidean|djkstra]")
+    parser.add_argument('--verbose', '-v', default=False, action='store_true', help='Verbose mode')
 
     args = parser.parse_args()
     try:
@@ -131,11 +155,23 @@ if __name__ == '__main__':
         exit(1)
     
 
-    print("PUZZLE PARSED:", puzzle, sep='\n')
+    if args.verbose:
+        print("PUZZLE PARSED:", puzzle, sep='\n')
 
     solution = generate_solution(puzzle_size)
-    print("Solution:", solution, sep='\n')
-    h = h_misplaced
+    if args.verbose:
+        print("Solution:", solution, sep='\n')
+
+    if args.heuristic == 'misplaced':
+        h = h_misplaced
+    elif args.heuristic == 'euclidean':
+        h = h_euclidean
+    elif args.heuristic == 'djkstra':
+        h = h_djkstra
+    else:
+        print("Heuristic is not recognized")
+        exit(1)
+
     g = some_g
     opened = PriorityQueue()
 
@@ -143,6 +179,7 @@ if __name__ == '__main__':
     opened.add(puzzle.heur, puzzle)
 
     closed = []
+    search_path = []
     success = False
     max_iter = 10
     iter = 0
@@ -150,6 +187,8 @@ if __name__ == '__main__':
         if len(opened) == 0 or success or iter >= max_iter:
             break
         e = opened.pop()
+        print("went to\n", e.dir_from, '\n')
+        search_path.append(e)
         closed.append(e)
         if e == solution:
             success = True
@@ -170,7 +209,10 @@ if __name__ == '__main__':
                         if r in closed:
                             closed.remove(r)
                             opened.add(r.heur, r)
+        print("Opened:")
+        print("\n========\n".join(('|'.join((str(_), str(_.dir_from), str(h))) for _, h in zip(opened.v, opened.k))))
         iter += 1
+        print("\nITER:", iter, '\n')
     print("Success:", success, "n_iter:", iter, 'opened size:', len(opened))
     if success:
         state_path = []
@@ -184,3 +226,4 @@ if __name__ == '__main__':
     # print("Opened")
     # print('\n-----\n'.join((str(_) for _ in opened)))
     # print("Closed:", closed)
+    print("Search path:\n", *(str(_) for _ in search_path), sep='\n========\n')
