@@ -99,9 +99,13 @@ def generate_solution(side):
     sol._find_empty()
     return sol
 
-def djkstra_heuristic(node):
+def djkstra_heuristic(node, solution=None):
     """ Djkstra algorithm is a special-case of A* when h(n) = 0 """
     return 0
+
+def h_misplaced(node, sol):
+    res = [sum([c1 != c2 for c1, c2 in zip(r1, r2)]) for r1, r2 in zip(node.values, sol.values)]
+    return sum(res)
 
 def some_g(node):
     return 1
@@ -128,7 +132,7 @@ if __name__ == '__main__':
 
     solution = generate_solution(puzzle_size)
     print("Solution:", solution, sep='\n')
-    h = djkstra_heuristic
+    h = h_misplaced
     g = some_g
     opened = [puzzle]
     closed = []
@@ -140,7 +144,6 @@ if __name__ == '__main__':
             break
         e = opened.pop(0)
         closed.append(e)
-        print(f"e=\n{e}\n e == solution: {e == solution}")
         if e == solution:
             success = True
         else:
@@ -154,18 +157,20 @@ if __name__ == '__main__':
                     r.came_from = e
                     r.dir_from = dir
                     r.g = e.g + 1 # + Cost
+                    r.heur = h(r, solution)
                 else:
-                    rh = h(r)
-                    if r.g + rh > e.g + 1 + rh:
+                    r.heur = h(r, solution)
+                    if r.g + r.heur > e.g + 1 + r.heur:
                         r.g = e.g + 1
                         r.came_from = e
                         r.dir_from = dir
                         if r in closed:
                             closed.remove(r)
                             opened.append(r)
+            opened = sorted(opened, key=lambda x: x.heur)
         
         iter += 1
-    print("Success:", success)
+    print("Success:", success, "n_iter:", iter, 'opened size:', len(opened))
     if success:
         state_path = []
         while e.came_from is not None:
@@ -174,7 +179,7 @@ if __name__ == '__main__':
         state_path.append(puzzle)
         state_path = reversed(state_path)
         print("PATH:")
-        print("\n========\n".join(('|'.join((str(_), str(_.dir_from))) for _ in state_path)))
+        print("\n========\n".join(('|'.join((str(_), str(_.dir_from), str(_.heur))) for _ in state_path)))
     # print("Opened")
     # print('\n-----\n'.join((str(_) for _ in opened)))
     # print("Closed:", closed)

@@ -20,6 +20,7 @@ class State(list):
         else:
             self.empty_loc = empty_loc
         self.g = 0
+        self.heur = 0
     
     def _find_empty(self):
         found = False
