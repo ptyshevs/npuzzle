@@ -128,17 +128,37 @@ def h_euclidean(node, sol):
                             break
                     if found:
                         break
+                assert found
     return heur
 
-def some_g(node):
-    return 1
+def h_manhattan(node, sol):
+    h, w = node.shape
+    heur = 0
+    for i in range(h):
+        for j in range(w):
+            c1 = node[i, j]
+            c2 = sol[i, j]
+            if c1 != c2:
+                found = False
+                for k in range(h):
+                    for m in range(w):
+                        c = sol[k, m]
+                        if c1 == c:
+                            heur += abs(k - i) + abs(m - j)
+                            found = True
+                        if found:
+                            break
+                    if found:
+                        break
+                assert found
+    return heur
 
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('puzzle', help='path to puzzle file')
-    parser.add_argument('--heuristic', default='misplaced', help="Heuristic to use [misplaced|euclidean|djkstra]")
+    parser.add_argument('--heuristic', default='misplaced', help="Heuristic to use [misplaced|euclidean|manhattan|djkstra]")
     parser.add_argument('--verbose', '-v', default=False, action='store_true', help='Verbose mode')
 
     args = parser.parse_args()
@@ -164,6 +184,8 @@ if __name__ == '__main__':
 
     if args.heuristic == 'misplaced':
         h = h_misplaced
+    elif args.heuristic == 'manhattan':
+        h = h_manhattan
     elif args.heuristic == 'euclidean':
         h = h_euclidean
     elif args.heuristic == 'djkstra':
@@ -172,28 +194,38 @@ if __name__ == '__main__':
         print("Heuristic is not recognized")
         exit(1)
 
-    g = some_g
+    # g = some_g
     opened = PriorityQueue()
 
     puzzle.heur = h(puzzle, solution)
     opened.add(puzzle.heur, puzzle)
-
-    closed = []
+    closed = set()
     search_path = []
     success = False
-    max_iter = 10
+    max_iter = 100000
+    verbose_step = int(max_iter // 20)
     iter = 0
     while True:
         if len(opened) == 0 or success or iter >= max_iter:
+            print("BREAK", len(opened))
             break
         e = opened.pop()
-        print("went to\n", e.dir_from, '\n')
-        search_path.append(e)
-        closed.append(e)
+        # print("went to\n", e.dir_from, '\n')
+        # search_path.append(e)
+        closed.add(e)
         if e == solution:
+            print("SOLVED")
             success = True
         else:
             for dir in ['u', 'r', 'd', 'l']:
+                if e.dir_from == 'u' and dir == 'd':
+                    continue
+                elif e.dir_from == 'r' and dir == 'l':
+                    continue
+                elif e.dir_from == 'd' and dir == 'u':
+                    continue
+                elif e.dir_from == 'l' and dir == 'r':
+                    continue
                 try:
                     r = e.swap(dir)
                     r.heur = h(r, solution)
@@ -202,17 +234,20 @@ if __name__ == '__main__':
                     r.g = e.g + 1 # + Cost
                 except ValueError:
                     continue
+                
                 if r not in opened and r not in closed:
-                    opened.add(r.heur, r)
+                    opened.add(r.g * .4 + r.heur, r)
                 else:
-                    if r.g + r.heur > e.g + 1 + r.heur:
+                    if r.g * .5 + r.heur > (e.g + 1) * .7 + r.heur:
                         if r in closed:
+                            print("HERE")
                             closed.remove(r)
                             opened.add(r.heur, r)
-        print("Opened:")
-        print("\n========\n".join(('|'.join((str(_), str(_.dir_from), str(h))) for _, h in zip(opened.v, opened.k))))
+        # print("Opened:")
+        # print("\n========\n".join(('|'.join((str(_), str(_.dir_from), str(h))) for _, h in zip(opened.v, opened.k))))
         iter += 1
-        print("\nITER:", iter, '\n')
+        if args.verbose and iter % verbose_step == 0:
+            print(f"[{iter}]: n_opened = {len(opened)} | n_closed = {len(closed)} | cur_depth: {e.g} | top-10 heur: {opened.k[:10]}")
     print("Success:", success, "n_iter:", iter, 'opened size:', len(opened))
     if success:
         state_path = []
@@ -220,10 +255,11 @@ if __name__ == '__main__':
             state_path.append(e)
             e = e.came_from
         state_path.append(puzzle)
-        state_path = reversed(state_path)
-        print("PATH:")
-        print("\n========\n".join(('|'.join((str(_), str(_.dir_from), str(_.heur))) for _ in state_path)))
+        state_path = list(reversed(state_path))
+        print("path length:", len(state_path))
+        # if
+        # print("\n========\n".join(('|'.join((str(_), str(_.dir_from), str(_.heur))) for _ in state_path)))
     # print("Opened")
     # print('\n-----\n'.join((str(_) for _ in opened)))
     # print("Closed:", closed)
-    print("Search path:\n", *(str(_) for _ in search_path), sep='\n========\n')
+    # print("Search path:\n", *(str(_) for _ in search_path), sep='\n========\n')

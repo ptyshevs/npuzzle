@@ -21,6 +21,7 @@ class State(list):
             self.empty_loc = empty_loc
         self.g = 0
         self.heur = 0
+        self.hash = hash(str(self))
     
     def _find_empty(self):
         found = False
@@ -34,6 +35,9 @@ class State(list):
                     break
             if found:
                 break
+    
+    def _rehash(self):
+        self.hash = hash(str(self))
 
     def _validate_values(self, values):
         """
@@ -72,6 +76,7 @@ class State(list):
         # self.empty_loc = to
         self[self.empty_loc], self[to] = self[to], self[self.empty_loc]
         self.empty_loc = to
+        self._rehash()
 
     def swap(self, dir, inplace=False):
         y, x = self.empty_loc
@@ -159,6 +164,7 @@ class State(list):
             else:
                 for c in range(*col.indices(len(self.values[0]))):
                     self.values[r][c] = value[c]
+        self._rehash()
 
 
     def copy(self):
@@ -166,4 +172,8 @@ class State(list):
         return State([r[:] for r in self.values], empty_loc=self.empty_loc)
 
     def __eq__(self, o):
-        return all([all([c1 == c2 for c1, c2 in zip(r1, r2)]) for r1, r2 in zip(self.values, o.values)])
+        # print(self, o, self.hash, o.hash)
+        return self.hash == o.hash
+    
+    def __hash__(self):
+        return int(self.hash)
