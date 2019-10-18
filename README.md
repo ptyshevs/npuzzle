@@ -2,5 +2,8 @@
 
 Bonuses
 
+* Iterations-constraint
 * Time-constraint
 * Verbose mode
+* Djkstra heuristic (BFS)
+* g(n) coefficient

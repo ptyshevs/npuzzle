@@ -95,10 +95,11 @@ def is_solvable(puzzle, solution, verbose):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--file', '-f', help='path to puzzle file', default=None, required=False)
-    parser.add_argument('--heuristic', default='misplaced', help="Heuristic to use [misplaced|euclidean|manhattan|djkstra]")
+    parser.add_argument('--heuristic', default='manhattan', help="Heuristic to use [misplaced|euclidean|manhattan|djkstra]")
     parser.add_argument('--verbose', '-v', default=False, action='store_true', help='Verbose mode')
     parser.add_argument('--iter', '-i', default='heuristic', help="Number of iterations [heuristic|inf|int]")
     parser.add_argument('--time', '-t', default=None, help="Time constraint, in seconds")
+    parser.add_argument('--g_constraint', '-g', default=0.4, help="Weight coefficient of path length")
 
     args = parser.parse_args()
     try:
@@ -123,7 +124,7 @@ if __name__ == '__main__':
     if args.verbose:
         print("PUZZLE PARSED:", puzzle, sep='\n')
         print("Solution:", solution, sep='\n')
-        print("Solvable:", solvable)
+    print("Solvable:", solvable)
 
     if not solvable:
         exit(0)
@@ -143,7 +144,7 @@ if __name__ == '__main__':
     success = False
 
     if args.iter == 'heuristic':
-        max_iter = puzzle_size * 10000
+        max_iter = puzzle_size * 100000
         verbose_step = int(max_iter // 20)
 
     elif args.iter == 'inf':
@@ -158,11 +159,18 @@ if __name__ == '__main__':
             print("Bad value of iter argument (must be convertable to integer)")
             exit(1)
 
+    if args.g_constraint is not None:
+        try:
+            g_coef = float(args.g_constraint)
+        except ValueError:
+            g_coef = .4
+    else:
+        g_coef = .4
+
     if args.time is None:
         max_time = None
     else:
         max_time = int(args.time)
-
 
     time_start = time.time()
     time_end = None if max_time is None else time_start + max_time
@@ -199,7 +207,7 @@ if __name__ == '__main__':
                     continue
                 
                 if r not in opened and r not in closed:
-                    opened.add(r.g * .4 + r.heur, r)
+                    opened.add(r.g * g_coef + r.heur, r)
         iter += 1
         if args.verbose and iter % verbose_step == 0:
             print(f"[{iter}]: n_opened = {len(opened)} | n_closed = {len(closed)} | cur_depth: {e.g} | top-5 heur: {', '.join(str(round(_, 1)) for _ in opened.k[:5])}")
@@ -215,5 +223,10 @@ if __name__ == '__main__':
     if success:
         print('->'.join((c.dir_from for c in state_path[1:])))
         print("Path length:", len(state_path))
+        with open('solution.txt', 'w') as f:
+            for s in state_path:
+                f.write(str(s))
+                f.write('\n==============\n')
+        print("State sequence written to solution.txt")
     else:
         print(fail_reason)
