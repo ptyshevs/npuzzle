@@ -5,7 +5,6 @@ def line_to_tokens(line):
         if not t:
             continue
         if t.startswith("#"):
-            print(line)
             break
         if '#' in t:
             tokens.append(t[:t.index("#")])

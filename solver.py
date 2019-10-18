@@ -4,6 +4,7 @@ from PriorityQueue import PriorityQueue
 from parser import parse
 from heuristics import *
 import sys
+import time
 
 def generate_solution(side):
     sol = State([[0 for _ in range(side)] for _ in range(side)])
@@ -68,10 +69,11 @@ def cnt_inversions(puzzle):
                 n_inv += 1
     return n_inv
 
-def is_solvable(puzzle, solution):
+def is_solvable(puzzle, solution, verbose):
     n_inv = cnt_inversions(puzzle)
     sol_inv = cnt_inversions(solution)
-    print("n_inversions:", n_inv, 'sol_inversions:', sol_inv)
+    if verbose:
+        print("n_inversions:", n_inv, 'sol_inversions:', sol_inv)
     n_inv = n_inv % 2
     sol_inv = sol_inv % 2
 
@@ -96,6 +98,7 @@ if __name__ == '__main__':
     parser.add_argument('--heuristic', default='misplaced', help="Heuristic to use [misplaced|euclidean|manhattan|djkstra]")
     parser.add_argument('--verbose', '-v', default=False, action='store_true', help='Verbose mode')
     parser.add_argument('--iter', '-i', default='heuristic', help="Number of iterations [heuristic|inf|int]")
+    parser.add_argument('--time', '-t', default=None, help="Time constraint, in seconds")
 
     args = parser.parse_args()
     try:
@@ -115,7 +118,7 @@ if __name__ == '__main__':
         print(e)
         exit(1)
 
-    solvable = is_solvable(puzzle, solution)    
+    solvable = is_solvable(puzzle, solution, args.verbose)    
 
     if args.verbose:
         print("PUZZLE PARSED:", puzzle, sep='\n')
@@ -154,15 +157,27 @@ if __name__ == '__main__':
         except ValueError:
             print("Bad value of iter argument (must be convertable to integer)")
             exit(1)
+
+    if args.time is None:
+        max_time = None
+    else:
+        max_time = int(args.time)
+
+
+    time_start = time.time()
+    time_end = None if max_time is None else time_start + max_time
+    fail_reason = None
     iter = 0
     while True:
         if len(opened) == 0 or success or iter >= max_iter:
-            print("BREAK", len(opened))
+            fail_reason = 'max iter exceeded'
+            break
+        if iter % 1000 == 0 and max_time and time.time() >= time_end:
+            fail_reason = 'max time exceeded'
             break
         e = opened.pop()
         closed.add(e)
         if e == solution:
-            print("SOLVED")
             success = True
         else:
             for dir in ['u', 'r', 'd', 'l']:
@@ -185,12 +200,6 @@ if __name__ == '__main__':
                 
                 if r not in opened and r not in closed:
                     opened.add(r.g * .4 + r.heur, r)
-                # else:
-                #     if r.g * .4 + r.heur > (e.g + 1) * .4 + r.heur:
-                #         if r in closed:
-                #             print("HERE")
-                #             closed.remove(r)
-                #             opened.add(r.heur, r)
         iter += 1
         if args.verbose and iter % verbose_step == 0:
             print(f"[{iter}]: n_opened = {len(opened)} | n_closed = {len(closed)} | cur_depth: {e.g} | top-5 heur: {', '.join(str(round(_, 1)) for _ in opened.k[:5])}")
@@ -202,10 +211,9 @@ if __name__ == '__main__':
             e = e.came_from
         state_path.append(puzzle)
         state_path = list(reversed(state_path))
-    print(f"Success: {success} | n_iter: {iter} | n_opened: {len(opened)} | n_closed: {len(closed)} | path length: {len(state_path)}")
+    print(f"Success: {success} | n_iter: {iter} | n_opened: {len(opened)} | n_total: {len(opened) + len(closed)}")
     if success:
         print('->'.join((c.dir_from for c in state_path[1:])))
-        print("Final state:\n===========\n", state_path[-1], sep='')
-        # for s in state_path:
-        #     print(s, sep='')
-        #     print("===============")
+        print("Path length:", len(state_path))
+    else:
+        print(fail_reason)
