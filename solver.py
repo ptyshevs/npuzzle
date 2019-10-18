@@ -229,4 +229,7 @@ if __name__ == '__main__':
                 f.write('\n==============\n')
         print("State sequence written to solution.txt")
     else:
-        print(fail_reason)
+        if fail_reason is not None:
+            print(fail_reason)
+        else:
+            print("Failed for unknown reason. (Wow. How'd you did it?)")
