@@ -81,10 +81,14 @@ def is_solvable(puzzle, solution):
         return n_inv == sol_inv
     else:
         y, x = puzzle.empty_loc
-        if (puzzle.h - y - 1) % 2 == 0:
-            return n_inv != sol_inv
-        else:
+        yc, xc = solution.empty_loc
+
+        y = (puzzle.h - y) % 2
+        yc = (puzzle.h - yc) % 2
+        if y == yc:
             return n_inv == sol_inv
+        else:
+            return n_inv != sol_inv
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
