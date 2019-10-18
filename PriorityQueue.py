@@ -1,15 +1,12 @@
+import bisect
+
 class PriorityQueue(list):
     def __init__(self):
         self.v = []
         self.k = []
     
     def add(self, key, value):
-        n = len(self.v)
-        i = 0
-        while i < n:
-            if key < self.k[i]:
-                break
-            i += 1
+        i = bisect.bisect_right(self.k, key)
         self.v.insert(i, value)
         self.k.insert(i, key)
     
