@@ -51,11 +51,40 @@ def generate_solution(side):
 
 def cnt_inversions(puzzle):
     n_inv = 0
-    # flat =
+    flat = []
+    for r in puzzle.values:
+        for c in r:
+            flat.append(c)
+    n = len(flat)
+    for i in range(n):
+        is_inv = False
+        if flat[i] == 0:
+            continue
+        for j in range(i):
+            if flat[j] == 0:
+                continue
+            if flat[j] > flat[i]:
+                # print(f"inverse: {flat[j]} > {flat[i]}")
+                n_inv += 1
+    return n_inv
 
-def is_solvable(puzzle):
-    n_inversions = cnt_inversions(puzzle)
-    return True
+def is_solvable(puzzle, solution):
+    n_inv = cnt_inversions(puzzle)
+    sol_inv = cnt_inversions(solution)
+    print("n_inversions:", n_inv, 'sol_inversions:', sol_inv)
+    n_inv = n_inv % 2
+    sol_inv = sol_inv % 2
+
+    n = puzzle.w
+    
+    if n % 2 == 1:
+        return n_inv == sol_inv
+    else:
+        y, x = puzzle.empty_loc
+        if (puzzle.h - y - 1) % 2 == 0:
+            return n_inv != sol_inv
+        else:
+            return n_inv == sol_inv
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -82,12 +111,15 @@ if __name__ == '__main__':
         print(e)
         exit(1)
 
-    solvable = is_solvable(puzzle)    
+    solvable = is_solvable(puzzle, solution)    
 
     if args.verbose:
         print("PUZZLE PARSED:", puzzle, sep='\n')
         print("Solution:", solution, sep='\n')
+        print("Solvable:", solvable)
 
+    if not solvable:
+        exit(0)
     heur_map = {'misplaced': h_misplaced, 'manhattan': h_manhattan,
                 'euclidean': h_euclidean, 'djkstra': h_djkstra}
     
@@ -167,3 +199,9 @@ if __name__ == '__main__':
         state_path.append(puzzle)
         state_path = list(reversed(state_path))
     print(f"Success: {success} | n_iter: {iter} | n_opened: {len(opened)} | n_closed: {len(closed)} | path length: {len(state_path)}")
+    if success:
+        print('->'.join((c.dir_from for c in state_path[1:])))
+        print("Final state:\n===========\n", state_path[-1], sep='')
+        # for s in state_path:
+        #     print(s, sep='')
+        #     print("===============")
